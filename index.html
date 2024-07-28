@@ -1,0 +1,272 @@
+
+
+<canvas id="canvas" width="1000" height="1080"></canvas>
+
+<div class="ui">
+	<img src="diamond.webp" class="item"></img>
+		<div id="diamond">0</div>
+	<img src="gold.webp" class="item"></img>
+		<div id="gold">0</div>
+	
+</div>
+
+<img src="weapon.png" id="weapon"></img>
+<style>
+	*{
+		cursor: none;
+		user-select: none;
+		
+	}
+	#canvas{
+		position: absolute;
+	}
+	#weapon{
+		position: relative;
+		
+		transform: rotate(0deg);
+	}
+	.ui{
+		font-size: 50;
+		position: absolute;
+	}
+	.item{
+		height: 50;
+	}
+
+</style>
+
+<script>
+/* сделать разделение айтемов по классам, чтобы каждый айтем был уникальный тогда получитсярешить
+проблему с обновлением интерфейса */
+var weaponImg = document.querySelector("#weapon");
+var canvasElement = document.querySelector("#canvas");
+var context = canvasElement.getContext("2d");
+var uiDiamond = document.querySelector("#diamond");
+var uiGold = document.querySelector("#gold");
+var bg;
+
+var item = {
+	hp: 80,
+	audioVolume: "on",
+	currentAudioItem: null,
+	sounds: [],
+	currentItemTextures: 0,
+	textures: [],
+	sizeX: 0,
+	sizeY: 0,
+	positionX: function(){return triangle.cos  - (this.sizeX/2)},
+	positionY: function(){return triangle.sin - (this.sizeY/2)},
+	resize: function(){
+		this.sizeX = this.textures[0].width;
+		this.sizeY = this.textures[0].height;
+	},
+	minimize: function(){
+		this.sizeX -= 8;
+		this.sizeY -= 8;
+	},
+	generateItemPosition: function (){
+		triangle.x2 = randomRange(0, triangle.maxLengthBottomCatet); // зарандомить положение точки виртуального треугольника
+		triangle.angle = Math.atan2((triangle.y3 - triangle.y1), (triangle.x2 - triangle.x3)); //считаем угол в радианах
+		triangle.c = Math.sqrt((triangle.y2 - triangle.y1) * (triangle.y2 - triangle.y1) + (triangle.x2 - triangle.x3) * (triangle.x2 - triangle.x3)); // считаем длину гипотенузы рандомного треугольника
+		triangle.randPointOnRay = randomRange(0, triangle.c); // считаем рандомное значение для точки от начала до длины гипотенузы
+		triangle.cos = Math.cos(triangle.angle) * triangle.randPointOnRay + triangle.x1; // считаем косинус и домножаем на значение от рандома
+		triangle.sin = Math.sin(triangle.angle) * triangle.randPointOnRay + triangle.y1; // считаем синус и домножаем на значение от рандома
+	},
+	generateItemTextures: function() {
+		this.currentItemTextures = randomRange(0, this.textures.length - 1); //выбираем рандомную текстуру айтема
+	},
+	audioPlay: function(){
+		if(this.audioVolume == "on"){
+			this.currentAudioItem = randomRange(0, this.sounds.length - 2);
+			this.sounds[this.currentAudioItem].play();
+			this.audioVolume = "off";
+		}	
+	},
+	audioStop: function(){
+		if(item.audioVolume == "off"){
+			item.audioVolume = "on";
+			item.sounds[item.currentAudioItem].pause();
+			item.sounds[item.currentAudioItem].currentTime = 0;
+		}
+	},
+	lowerHp: function(){
+			this.hp -= weapon.attack;
+			if(this.hp <= 0){
+				this.sounds[2].play();
+				item.animation.destroy();
+				//обновление данных в интерфейсе, требуестя вывести в отдельную функцию
+				if(item.textures[item.currentItemTextures].src.includes("gold"))
+					uiGold.innerText = parseInt(uiGold.innerText) + 1;
+				else if(item.textures[item.currentItemTextures].src.includes("diamond"))
+					uiDiamond.innerText = parseInt(uiDiamond.innerText) + 1;
+			}
+	},
+	checkItemPosition: function(e){
+		return (e.clientX > item.positionX() && e.clientX < item.positionX() + item.sizeX && e.clientY > item.positionY() && e.clientY < item.positionY() + item.sizeY)
+	},
+	hpLine: function(){
+		context.strokeStyle="red";          
+		context.lineWidth=10;
+		context.beginPath();
+		context.moveTo(item.positionX(), item.positionY()-15);                      
+		context.lineTo(item.positionX()+item.hp,item.positionY()-15);
+		context.stroke();
+	},
+	animation: {
+		destroy: function(){
+			var IntervalHandler = setInterval(function(){
+				render();
+				item.minimize();
+				if(item.sizeX <= 0 || item.sizeY <= 0){ 
+					clearInterval(IntervalHandler);
+					item.resize();
+					item.hp = 80;
+					main();
+				}
+			},25)
+		}
+	}
+}
+
+var weapon = {
+	attack: 10,
+	rotate: 0,
+	animationDirection: "forward",
+	
+	animation: {
+	
+		hit: function(){
+			var IntervalHandler = setInterval(() => {
+				if(weapon.animationDirection == "forward"){
+					weapon.rotate += 20;
+					weaponImg.style.transform = `rotate(${weapon.rotate}deg)`;
+					
+					if(weapon.rotate >= 80)
+						weapon.animationDirection = "backward";
+				}
+				else if(weapon.animationDirection == "backward"){
+					weapon.rotate -= 20;
+					weaponImg.style.transform = `rotate(${weapon.rotate}deg)`;
+					if(weapon.rotate <= 0){
+						weapon.animationDirection = "forward";
+						weapon.rotate = 0;
+						clearInterval(IntervalHandler);
+					}
+				}
+			}, 25);
+		}
+	}
+}
+
+var triangle = {
+	x1: 500,
+	y1: 50,
+	
+	x2: 900,
+	y2: 800,
+	
+	x3: 500,
+	y3: 800,
+	
+	angle: 0,
+	c: 0,
+	maxLengthBottomCatet: 900,
+	
+	sin: 0,
+	cos: 0,
+	randPointOnRay: 0
+}
+
+function debag(){
+// рисуем рандомный треугольник по которому встанет точка на гипотенузе
+context.beginPath();
+context.moveTo(triangle.x1, triangle.y1);
+context.lineTo(triangle.x2, triangle.y2);
+context.lineTo(triangle.x3, triangle.y3);
+context.closePath();
+context.fillStyle = 'black';
+context.lineWidth = 0.5; 
+context.stroke();
+
+// рисуем точку с поправкой на позицию от начала экрана
+context.fillStyle = 'red';
+context.beginPath();
+context.arc(triangle.cos + 48, triangle.sin + 32, 5, 0, 2*Math.PI, false);
+context.fill();
+}
+
+function randomRange(min, max){
+	return Math.floor(((max - min)+1)*Math.random()+min);
+}
+
+function render(){
+	context.clearRect(0, 0, canvasElement.width, canvasElement.height);
+	context.drawImage(bg, 0, 0, canvasElement.width, canvasElement.height);
+	context.drawImage(item.textures[item.currentItemTextures], item.positionX(), item.positionY(), item.sizeX, item.sizeY);
+	item.hpLine();
+}
+
+function main(){
+	item.generateItemPosition();
+	item.generateItemTextures();
+	render();
+}
+
+function loadImage(src){
+	return new Promise((resolve) => {
+		const image = new Image();
+		image.src = src;
+		image.onload = () => resolve(image);
+	})
+}
+
+function loadSound(src){
+		const sound = new Audio();
+		sound.src = src;
+		return sound;
+}
+
+async function init(){
+	bg = await loadImage("bg.webp");
+	item.textures.push(await loadImage("diamond.webp"));
+	item.textures.push(await loadImage("gold.webp"));
+	item.sounds.push(loadSound("0.mp3"));
+	item.sounds.push(loadSound("1.mp3"));
+	item.sounds.push(loadSound("2.mp3"));
+	item.resize();
+	main();
+	//debag();
+}
+
+canvasElement.addEventListener("mousemove", function(e){
+	weaponImg.style.left = e.clientX;
+	weaponImg.style.top = e.clientY-40;
+})
+
+canvasElement.addEventListener("pointerdown", e => {
+	weapon.animation.hit();
+	
+	if(item.checkItemPosition(e)){
+		item.audioStop();
+		item.lowerHp();
+		item.hpLine();
+		item.audioPlay();
+		render();
+	}
+})
+
+/*
+//выполнение чистыми промисами
+loadImage("2.png").then(tx => {
+		bg = tx; 
+		return loadImage("diamond.webp")
+	}).then(tx => {
+		item.texture = tx; 
+		item.resize();
+		main();
+	})
+*/
+
+init();
+
+</script>
